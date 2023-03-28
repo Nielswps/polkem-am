@@ -1,8 +1,11 @@
-FROM scratch
+FROM ubuntu:22.04
 
-COPY target/release/main /main
-COPY resources /resources
+WORKDIR /bin
 
-EXPOSE 3000
+ADD --chown=777 target/release/account_manager .
 
-ENTRYPOINT ["/main"]
+VOLUME resources
+COPY resources resources
+
+EXPOSE 3000/tcp
+ENTRYPOINT [ "account_manager" ]
