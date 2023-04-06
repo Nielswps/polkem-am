@@ -1,4 +1,3 @@
-use std::fs;
 use std::net::{IpAddr, SocketAddr};
 use axum::Router;
 use axum::routing::get;
