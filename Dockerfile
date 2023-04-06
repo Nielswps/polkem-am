@@ -4,8 +4,7 @@ WORKDIR /bin
 
 ADD --chown=777 target/release/account_manager .
 
-VOLUME resources
-COPY resources resources
+VOLUME keys
 
 EXPOSE 3000/tcp
 ENTRYPOINT [ "account_manager" ]

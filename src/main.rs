@@ -1,3 +1,4 @@
+use std::fs;
 use std::net::{IpAddr, SocketAddr};
 use axum::Router;
 use axum::routing::get;
@@ -30,6 +31,7 @@ pub async fn main() {
 
     let addr = SocketAddr::new(IpAddr::from(ip), args.port);
 
+    // Print service address and port
     let tmp = ip.map(|e| e.to_string() + ".").into_iter().collect::<String>();
     let ip_string = &tmp[0..tmp.len() - 1];
     println!("Running on {:}:{:}", ip_string, args.port);
