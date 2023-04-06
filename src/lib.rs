@@ -50,9 +50,9 @@ mod tests {
             .route("/:index", get(key));
 
         let client = TestClient::new(app);
-        let response = client.get("/0").send().await;
+        let response = client.get("/energy-boot-node").send().await;
 
         assert_eq!(response.status(), StatusCode::OK);
-        assert_eq!(response.text().await, "856b7471e95fcb05ca1685e0a9400535391463a79b0305f22a1a80a6c647ee5d");
+        assert_eq!(response.text().await, "76c10f83e6014ac6c5ab6de573bd7fa7be327b6445b755fd0db1c58b9320e6a6");
     }
 }
