@@ -1,10 +1,15 @@
-FROM ubuntu:22.04
+FROM docker.io/rust:1.68.0 as builder
+COPY src src
+COPY Cargo.toml Cargo.toml
+COPY Cargo.lock Cargo.lock
 
-WORKDIR /bin
+RUN cargo build --release
 
-ADD --chown=777 target/release/account_manager .
+FROM gcr.io/distroless/cc
+COPY --from=builder ./target/release/account_manager /
 
-VOLUME keys
+RUN [ "./account_manager", "--version"]
 
 EXPOSE 3000/tcp
-ENTRYPOINT [ "account_manager" ]
+VOLUME keys
+ENTRYPOINT [ "./account_manager" ]
