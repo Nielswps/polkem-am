@@ -5,7 +5,7 @@ edition = "2021"
 authors = [ "Niels F. S. Vistisen" ]
 
 [dependencies]
-axum = "0.6.12"
+axum = "0.5.17"
 axum-test-helper = "0.2.0"
 clap = { version = "4.1.14", features = ["derive"] }
 tokio = { version = "1.26.0", features = ["full"] }
