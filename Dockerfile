@@ -1,11 +1,19 @@
-FROM ubuntu:22.04
+FROM docker.io/clux/muslrust:1.68.2 as builder
+RUN mkdir account-manager
+WORKDIR ./account-manager
 
-WORKDIR /bin
+COPY src src
+COPY Cargo.toml Cargo.toml
+COPY Cargo.lock Cargo.lock
 
-ADD --chown=777 target/release/account_manager .
+RUN cargo build --release
+RUN mv target/x86_64-unknown-linux-musl/release/account_manager /
 
-VOLUME resources
-COPY resources resources
+FROM alpine:3.17.3
+COPY --from=builder /account_manager /account_manager
+
+RUN [ "./account_manager", "--version"]
 
 EXPOSE 3000/tcp
-ENTRYPOINT [ "account_manager" ]
+VOLUME keys
+ENTRYPOINT [ "./account_manager" ]

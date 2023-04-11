@@ -1,21 +1,37 @@
 use std::fs;
+use std::path::Path as KeyLocation;
+use sha256::digest;
+
 use axum::{
     http::StatusCode,
 };
 use axum::extract::Path;
 
-pub async fn key(Path(str_with_numerics): Path<String>) -> (StatusCode, String) {
-    let id: String = <String as Into<String>>::into(str_with_numerics.clone()).chars()
-        .filter(|c| c.is_numeric())
-        .collect();
+pub async fn key(Path(input): Path<String>) -> (StatusCode, String) {
+    let key_path = format!("keys/{}", &input);
 
-    if id.is_empty() {
-        return (StatusCode::BAD_REQUEST, format!("'{:}' does not contain any numbers", str_with_numerics));
-    }
+    println!("Responding to request with input '{}'...", &input);
 
-    match fs::read_to_string(format!("resources/node-{}-key", id)) {
-        Ok(c) => (StatusCode::OK, c),
-        Err(_) => (StatusCode::BAD_REQUEST, format!("Unable to load key for node '{}'. Must be integer between 0 and 99", id))
+    if KeyLocation::new(&key_path).exists() {
+        match fs::read_to_string(&key_path) {
+            Ok(c) => (StatusCode::OK, c),
+            Err(e) => (StatusCode::BAD_REQUEST, format!("Unable to load key for '{}' due to: {}", &input, e.to_string()))
+        }
+    } else {
+        let key = digest(key_path.clone());
+
+        // Ensure 'keys' directory exists
+        if !KeyLocation::exists(KeyLocation::new("keys/")) {
+            match fs::create_dir("keys") {
+                Ok(_) => {}
+                Err(e) => panic!("Unable to create dir 'keys' due to: {}", e.to_string())
+            }
+        }
+
+        match fs::write(key_path, &key) {
+            Ok(_) => (StatusCode::OK, key),
+            Err(e) => (StatusCode::BAD_REQUEST, format!("Unable to write generated key for '{}' due to: {}", input, e.to_string()))
+        }
     }
 }
 
@@ -29,84 +45,14 @@ mod tests {
     use axum_test_helper::TestClient;
 
     #[tokio::test]
-    async fn index_0_returns_correct_id() {
+    async fn boot_node_request_returns_correct_id() {
         let app = Router::new()
             .route("/:index", get(key));
 
         let client = TestClient::new(app);
-        let response = client.get("/0").send().await;
+        let response = client.get("/energy-boot-node").send().await;
 
         assert_eq!(response.status(), StatusCode::OK);
-        assert_eq!(response.text().await, "5eb92d7eefb3a1e0e58397df26a542ae4dc83da03cd95923defbbec749ab6a54");
-    }
-
-    #[tokio::test]
-    async fn index_with_prefix_returns_correct_id() {
-        let app = Router::new()
-            .route("/:index", get(key));
-
-        let client = TestClient::new(app);
-        let response = client.get("/some-random-prefix-string-0").send().await;
-
-        assert_eq!(response.status(), StatusCode::OK);
-        assert_eq!(response.text().await, "5eb92d7eefb3a1e0e58397df26a542ae4dc83da03cd95923defbbec749ab6a54");
-    }
-
-    #[tokio::test]
-    async fn index_with_pre_and_postfix_returns_correct_id() {
-        let app = Router::new()
-            .route("/:index", get(key));
-
-        let client = TestClient::new(app);
-        let response = client.get("/some-random-prefix-string0and-some-random-postfix-string").send().await;
-
-        assert_eq!(response.status(), StatusCode::OK);
-        assert_eq!(response.text().await, "5eb92d7eefb3a1e0e58397df26a542ae4dc83da03cd95923defbbec749ab6a54");
-    }
-
-    #[tokio::test]
-    async fn char_index_returns_bad_request_and_parse_err_msg() {
-        let app = Router::new()
-            .route("/:index", get(key));
-
-        let client = TestClient::new(app);
-        let response = client.get("/i").send().await;
-
-        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-        assert_eq!(response.text().await, "'i' does not contain any numbers");
-    }
-
-    #[tokio::test]
-    async fn index_999_returns_bad_request_and_custom_msg() {
-        let app = Router::new()
-            .route("/:index", get(key));
-
-        let client = TestClient::new(app);
-        let response = client.get("/999").send().await;
-
-        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-        assert_eq!(response.text().await, format!("Unable to load key for node '{}'. Must be integer between 0 and 99", 999));
-    }
-
-    #[tokio::test]
-    async fn no_index_returns_not_found() {
-        let app = Router::new()
-            .route("/:index", get(key));
-
-        let client = TestClient::new(app);
-        let response = client.get("/").send().await;
-
-        assert_eq!(response.status(), StatusCode::NOT_FOUND);
-    }
-
-    #[tokio::test]
-    async fn url_prefix_returns_not_found() {
-        let app = Router::new()
-            .route("/:index", get(key));
-
-        let client = TestClient::new(app);
-        let response = client.get("/keys/0").send().await;
-
-        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+        assert_eq!(response.text().await, "76c10f83e6014ac6c5ab6de573bd7fa7be327b6445b755fd0db1c58b9320e6a6");
     }
 }
